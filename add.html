@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add</title>
+<style>
+:root {
+  --primary:#007aff;
+  --bg:#f7f7f7;
+  --card:#fff;
+  --text:#111;
+  --border:#e0e0e0;
+}
+body { margin:0; font-family:system-ui; background:var(--bg); color:var(--text) }
+header { 
+  padding:16px; 
+  background:var(--text); 
+  color:white;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  font-size:20px;
+  font-weight:600
+}
+.search-container {
+  padding:16px;
+  position:sticky;
+  top:0;
+  background:var(--bg);
+  z-index:10
+}
+input {
+  width:100%;
+  padding:14px;
+  font-size:16px;
+  border-radius:12px;
+  border:2px solid var(--border);
+  box-sizing:border-box;
+  transition:border-color 0.2s;
+  outline:none
+}
+input:focus {
+  border-color:var(--primary)
+}
+.result {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  background:var(--card);
+  margin:0 12px 12px;
+  padding:12px;
+  border-radius:12px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.1);
+  transition:transform 0.2s, box-shadow 0.2s;
+  cursor:pointer
+}
+.result:hover {
+  transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(0,0,0,0.15)
+}
+.result img { 
+  width:60px; 
+  height:90px;
+  object-fit:cover;
+  border-radius:8px;
+  background:var(--border);
+  flex-shrink:0
+}
+.result-info {
+  flex:1;
+  min-width:0
+}
+.result-title {
+  font-weight:600;
+  margin-bottom:4px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+.result-year {
+  color:#666;
+  font-size:14px
+}
+button {
+  margin-left:auto;
+  font-size:24px;
+  background:none;
+  border:none;
+  color:var(--primary);
+  cursor:pointer;
+  padding:8px;
+  border-radius:50%;
+  transition:background 0.2s;
+  flex-shrink:0
+}
+button:hover {
+  background:rgba(0,122,255,0.1)
+}
+button:disabled {
+  opacity:0.5;
+  cursor:not-allowed
+}
+.loading, .empty {
+  text-align:center;
+  padding:40px 20px;
+  color:#999;
+  font-size:14px
+}
+.spinner {
+  border:3px solid var(--border);
+  border-top-color:var(--primary);
+  border-radius:50%;
+  width:30px;
+  height:30px;
+  animation:spin 0.8s linear infinite;
+  margin:0 auto 12px
+}
+@keyframes spin {
+  to { transform:rotate(360deg) }
+}
+</style>
+</head>
+<body>
+
+<header>Add Movie / Series</header>
+<div class="search-container">
+<input id="q" placeholder="Search movies or series" autocomplete="off" aria-label="Search movies or series">
+</div>
+<div id="results"></div>
+
+<script>
+let timer
+
+q.oninput = e => {
+  clearTimeout(timer)
+  timer = setTimeout(() => search(e.target.value), 500)
+}
+
+async function search(v) {
+  v = v.trim()
+  if (!v) {
+    results.innerHTML = ""
+    return
+  }
+  
+  results.innerHTML = '<div class="loading"><div class="spinner"></div>Searching...</div>'
+  
+  try {
+    const r = await fetch(`/search/tmdb?q=${encodeURIComponent(v)}`)
+    if (!r.ok) throw new Error('Search failed')
+    
+    const d = await r.json()
+    results.innerHTML = ""
+    
+    if (!d || d.length === 0) {
+      results.innerHTML = '<div class="empty">No results found</div>'
+      return
+    }
+    
+    d.forEach(x => {
+      const poster = x.poster_path
+        ? `https://image.tmdb.org/t/p/w185${x.poster_path}`
+        : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="60" height="90" fill="%23ddd"%3E%3Crect width="60" height="90"/%3E%3C/svg%3E'
+      const year = (x.release_date || x.first_air_date || "").slice(0, 4)
+      const title = x.title || x.name
+      
+      const row = document.createElement("div")
+      row.className = "result"
+      row.innerHTML = `
+        <img src="${poster}" alt="${title} poster" loading="lazy">
+        <div class="result-info">
+          <div class="result-title">${title}</div>
+          <div class="result-year">${year || 'N/A'}</div>
+        </div>
+        <button aria-label="Add ${title}" title="Add to library">＋</button>
+      `
+      const btn = row.querySelector("button")
+      btn.onclick = () => add(x, btn)
+      results.appendChild(row)
+    })
+  } catch (err) {
+    console.error('Search error:', err)
+    results.innerHTML = '<div class="empty">Failed to search. Please try again.</div>'
+  }
+}
+
+async function add(x, btn) {
+  if (btn.disabled) return
+  
+  btn.disabled = true
+  btn.textContent = '⏳'
+  
+  try {
+    const res = await fetch("/add", {
+      method: "POST",
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tmdb_id: x.id,
+        title: x.title || x.name,
+        year: (x.release_date || x.first_air_date || "").slice(0, 4),
+        media_type: x.media_type,
+        poster_path: x.poster_path
+      })
+    })
+    
+    if (!res.ok) throw new Error('Failed to add')
+    
+    btn.textContent = '✓'
+    toast("Added to library ✓")
+    
+    setTimeout(() => {
+      btn.textContent = '＋'
+      btn.disabled = false
+    }, 2000)
+  } catch (err) {
+    console.error('Add error:', err)
+    toast("Failed to add. Please try again.")
+    btn.textContent = '＋'
+    btn.disabled = false
+  }
+}
+
+function toast(t) {
+  const d = document.createElement("div")
+  d.innerText = t
+  d.style = `
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%) translateY(100px);
+    background:#111;
+    color:white;
+    padding:12px 20px;
+    border-radius:8px;
+    box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    transition:transform 0.3s ease;
+    z-index:1000;
+    font-size:14px
+  `
+  document.body.appendChild(d)
+  setTimeout(() => d.style.transform = 'translateX(-50%) translateY(0)', 10)
+  setTimeout(() => d.style.transform = 'translateX(-50%) translateY(100px)', 1700)
+  setTimeout(() => d.remove(), 2000)
+}
+</script>
+</body>
+</html>
