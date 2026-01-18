@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Movie DB</title>
+<style>
+body {
+  margin:0;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  font-family:system-ui;
+  background:#111;
+  color:white;
+}
+button {
+  width:80%;
+  padding:18px;
+  margin:10px;
+  font-size:18px;
+  border:none;
+  border-radius:12px;
+}
+.add { background:#007aff; color:white }
+.db { background:#333; color:white }
+</style>
+</head>
+<body>
+
+<button class="add" onclick="location.href='/add-page'">
+Add Movie / Series
+</button>
+
+<button class="db" onclick="location.href='/library'">
+Database
+</button>
+
+</body>
+</html>
