@@ -14,7 +14,7 @@ A lightweight movie and TV series database manager with TMDB integration. Track 
 ## Quick Install (Termux)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/movie-db/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rift-rogue/movie-db/main/install.sh | bash
 ```
 
 Or clone and run manually:
