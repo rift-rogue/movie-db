@@ -20,7 +20,7 @@ curl -fsSL https://raw.githubusercontent.com/rift-rogue/movie-db/main/install.sh
 Or clone and run manually:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/movie-db.git
+git clone https://github.com/rift-rogue/movie-db.git
 cd movie-db
 chmod +x install.sh
 ./install.sh
